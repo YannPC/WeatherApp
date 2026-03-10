@@ -1,4 +1,3 @@
-
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -37,6 +36,22 @@ namespace WeatherApp.Testing
             {
                 BaseAddress = new Uri("https://api.open-meteo.com/") // base not used by GetFromJsonAsync here but set for completeness
             };
+        }
+
+        [Fact]
+        public async Task GetWeatherAsync_ThrowsWrappedException_WhenApiReturnsNullCurrentWeather()
+        {
+            // Arrange: API returns object with null Current_Weather which triggers an application exception inside the service
+            var json = "{\"Current_Weather\": null}";
+            using var httpClient = CreateHttpClientWithJson(json, HttpStatusCode.OK);
+            var service = new WeatherService(httpClient);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<Exception>(() => service.GetWeatherAsync("Tokyo", "JP", CancellationToken.None));
+            Assert.NotNull(ex.InnerException);
+            Assert.IsType<ApplicationException>(ex.InnerException);
+            Assert.Contains("Failed to retrieve weather data", ex.InnerException.Message);
+            
         }
 
         private sealed class FakeHttpMessageHandler
